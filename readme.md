@@ -47,17 +47,14 @@ weight data column for computing the mean and standard deviiation.
 Command lines creating plots below demonstrate different view of the
 same self-generated synthetic data:
 
-### scatter plot:
-`plot -t | plot 1-4 -zp`
+### scatter plot: `plot -t | plot 1-4 -zp`
 <img src="xy-scatter.png" width="600" />
 
-### xy-histogram with errorbars:
-`plot -t | plot 1-4 -zeEHW 5`
+### xy-histogram with errorbars: `plot -t | plot 1-4 -zeEHW 5`
 <img src="xy-hist-errorbars.png" width="600" />
 
-### xy-histogram bezier-smoothed:
-`plot -t | plot 1-4 -zsEHW 5`
-<img src="xy-hist-smooth" width="600" />
+### xy-histogram bezier-smoothed: `plot -t | plot 1-4 -zsEHW 5`
+<img src="xy-hist-smooth.png" width="600" />
 
 
 # Usage
