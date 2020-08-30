@@ -39,8 +39,8 @@ xy-histogram is the primary reason for writing the `plot` tool.
 An xy-histogram is a refinement of scatter plot and offers better
 visualization of high-noise data.  Given data arrays `(x[],y[])`,
 `x`-bins `B[]` are chosen either uniform in `x` or to contain samples
-of equal count (weight), an xy-histogram displays mean, and optionally
-standard deviation of the samples `y[i]` where `x[i]` falls in bin `B`
+of equal count (weight). An xy-histogram displays mean and optionally
+standard deviation of the samples `y[i]` where `x[i]` fall in bin `B`
 vs the bin position.  This representation of `y(x)` is similar to a
 [KNN](https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm) ML
 data learner whose complexity increases with finer bins.  `plot`
