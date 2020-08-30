@@ -149,7 +149,7 @@ def ComputeHistogram(X, wts, nbins_spec, flags):
        HIST_YERR     - return both y.mean and y.std for each bin
     Return: bin_edges, (ymeans, yerr), kind('x' or 'xy')
     """
-    assert X.ndim <= 2, 'unsupported X shape {X.shape}'
+    assert X.ndim <= 2, f'unsupported X shape {X.shape}'
     xyhist = X.ndim == 2 and X.shape[0] > 1
     x = X[0] if xyhist else X.flatten()
     nx = len(x)
@@ -390,7 +390,7 @@ def main():
     parser.add_argument('files_and_columns',  nargs='*')
     args = parser.parse_args()
 
-    assert not args.multikey_col, 'multikey_col not supported (todo)'
+    #assert not args.multikey_col, 'multikey_col not supported (todo)'
     if args.test_csv:
         PrintTestDataframe()
     else:
