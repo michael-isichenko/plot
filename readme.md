@@ -50,6 +50,7 @@ same self-generated synthetic data:
 
 ### scatter plot: `plot -t | plot 1-4 -zp`
 <img src="xy-scatter.png" width="600" />
+This view is not particularly telling.
 
 ### xy-histogram with errorbars: `plot -t | plot 1-4 -zeEHW 5`
 <img src="xy-hist-errorbars.png" width="600" />
