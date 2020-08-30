@@ -54,14 +54,13 @@ This view is not particularly telling.
 
 ### xy-histogram with errorbars: `plot -t | plot 1-4 -zeEHW 5`
 <img src="xy-hist-errorbars.png" width="600" />
-When error bars are large, the dependence of `Mean(y)` of `x` is not
+When error bars are large, the dependence of Mean(y) of x is not
 very visible.
 
 ### xy-histogram bezier-smoothed: `plot -t | plot 1-4 -zsEHW 5`
 <img src="xy-hist-smooth.png" width="600" />
-Plotting without error bar changes the `y` scale.  Smoothing removes
-remaining noise and gives a better idea whether and how `y` depends on
-`x`.
+Plotting without error bar changes the y scale.  Smoothing removes
+remaining noise and gives a better idea whether and how y depends on x.
 
 # Usage
 
