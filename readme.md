@@ -140,3 +140,4 @@ exec /your/python /path/to/plot.py $@
 * Date/time data support
 * Handling of missing values
 * Maybe: support surface/contour/heatmap plots while keeping a clean CLI
+* Maybe: add [GP](https://en.wikipedia.org/wiki/Gaussian_process) instead of [Bezier](https://en.wikipedia.org/wiki/Bezier_curve) smoothing
