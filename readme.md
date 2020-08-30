@@ -64,7 +64,7 @@ idx,foo,bar,boo,baz,wt
 ### scatter plot:
 
 `plot -t | plot 1-4 -zp`
-@import "xy-scatter.png
+@import "xy-scatter.png"
 
 ### xy-histogram with errorbars:
 
