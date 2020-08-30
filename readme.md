@@ -133,11 +133,14 @@ exec /your/python /path/to/plot.py $@
 ## Version info
 
 * Initial release V. 0.5 by Michael Isichenko
-* Tested with python 3.7.6 and gnuplot 5.4 on mac OSX and linux.
+* Tested with python 3.7.6 and gnuplot 5.4 on mac OSX and linux
 
 ## TODO
 
 * Date/time data support
 * Handling of missing values
+* Named columns in addition to column numbers
+* Input filtering (a.k.a. 'where' clause) based on data values
+* `eval`-based support for arithmetic and boolean expressions with data columns
 * Maybe: support surface/contour/heatmap plots while keeping a clean CLI
 * Maybe: add [GP](https://en.wikipedia.org/wiki/Gaussian_process) instead of [Bezier](https://en.wikipedia.org/wiki/Bezier_curve) smoothing
