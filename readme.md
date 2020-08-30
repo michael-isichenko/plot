@@ -1,10 +1,10 @@
 # `plot`
 
-`plot` is python program for command-line plotting numeric data in
-files or stdin and is convenient to use with unix pipes.  A
-command-line plotting tool, rather than 'ecosystems' like R, jupyter,
-or gnuplot, is something which is missing in standard shell-based
-tools.  `plot` is an attempt to fill this void.
+`plot` is python program for command-line plotting numeric data from
+files or stdin and is convenient to use with unix pipes.  A standalone
+command-line plotting tool, rather than 'ecosystems' like R, jupyter
+or mathematica notebook, or gnuplot, is something which is missing in
+standard shell-based tools.  `plot` is an attempt to fill this void.
 
 The source also includes functions callable from user applications
 after `import plot`.
@@ -30,23 +30,25 @@ plot are supplied by user.
 * 1D histogram of a column in a dataframe
 * xy-histograms of one or more y(x)
 
-# xy-histogram
+## xy-histogram
 
 is a useful exploratory data analysis (EDA) tool for visual detection
 of relationships, including nonlinear, among data fields.
 xy-histogram is the primary reason for writing the `plot` tool.
 
 An xy-histogram is a refinement of scatter plot and offers better
-visualization of high-noise data.  Given data arrays `(x[],y[])`, we
-bins `B[]` are chosen either uniform in `x` or to contain samples of
-equal count (weight), an xy-histogram displays mean, and optionally
+visualization of high-noise data.  Given data arrays `(x[],y[])`,
+`x`-bins `B[]` are chosen either uniform in `x` or to contain samples
+of equal count (weight), an xy-histogram displays mean, and optionally
 standard deviation of the samples `y[i]` where `x[i]` falls in bin `B`
 vs the bin position.  This representation of `y(x)` is similar to a
-KNN ML data learner.  `plot` supports weighted xy-histograms by using
-a weight data column for computing the mean and standard deviiation.
+[KNN](https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm) ML
+data learner whose complexity increases with finer bins.  `plot`
+supports weighted xy-histograms by using a weight data column when
+computing the mean and the standard deviation.
 
-Command lines creating plots below demonstrate different view of the
-same self-generated synthetic data:
+Command lines and resulting plots below demonstrate different views of
+the same noisy data (generated in CSV format by the same tool):
 
 ### scatter plot: `plot -t | plot 1-4 -zp`
 <img src="xy-scatter.png" width="600" />
@@ -55,14 +57,14 @@ This view is not particularly telling.
 ### xy-histogram with errorbars: `plot -t | plot 1-4 -zeEHW 5`
 <img src="xy-hist-errorbars.png" width="600" />
 When error bars are large, the dependence of Mean(y) of x is not
-very visible.
+very visible.  Larger bins will generate smaller error bars.
 
 ### xy-histogram bezier-smoothed: `plot -t | plot 1-4 -zsEHW 5`
 <img src="xy-hist-smooth.png" width="600" />
 Plotting without error bar changes the y scale.  Smoothing removes
 remaining noise and gives a better idea whether and how y depends on x.
 
-# Usage
+## Usage
 
 `plot` and the companion script `unplot` have help/examples options:
 
@@ -118,7 +120,7 @@ Examples:
   unplot                           # kill all active gnuplot windows
 ```
 
-# Installation
+## Installation
 
 The script plot.py starts with the hashbang `#!/usr/local/miniconda3/bin/python` and can be symlinked to ~/bin/plot or /usr/local/bin/plot.
 
@@ -128,12 +130,12 @@ Alternatively, you can create ~/bin/plot containing the following:
 exec /your/python /path/to/plot.py $@
 ```
 
-# Version info
+## Version info
 
 * Initial release V. 0.5 by Michael Isichenko
 * Tested with python 3.7.6 and gnuplot 5.4 on mac OSX and linux.
 
-# TODO
+## TODO
 
 * Date/time data support
 * Handling of missing values
