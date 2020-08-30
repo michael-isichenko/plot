@@ -37,12 +37,13 @@ of relationships, including nonlinear, among data fields.
 xy-histogram is the primary reason for writing the `plot` tool.
 
 An xy-histogram is a refinement of scatter plot and offers better
-visualization of high-noise data.  Given data arrays $x_i$, $y_i$,
-$i<N$, the bins $B_j$, $j<K\ll N$, are chosen either uniformly in $x$
-or to contain equal count (weight) samples, xy-histogram displays
-mean, and optionally standfard deviation of $\{y_i: x_i\in B_j\}$ vs
-the $x$-bin $B_j$.  `plot` supports weighted xy-histograms by using a
-weight data column for computing the mean and standard deviiation.
+visualization of high-noise data.  Given data arrays `(x[],y[])`, we
+bins `B[]` are chosen either uniform in `x` or to contain samples of
+equal count (weight), an xy-histogram displays mean, and optionally
+standard deviation of the samples `y[i]` where `x[i]` falls in bin `B`
+vs the bin position.  This representation of `y(x)` is similar to a
+KNN ML data learner.  `plot` supports weighted xy-histograms by using
+a weight data column for computing the mean and standard deviiation.
 
 Command lines creating plots below demonstrate different view of the
 same self-generated synthetic data:
@@ -113,10 +114,20 @@ Examples:
   unplot                           # kill all active gnuplot windows
 ```
 
+# Installation
+
+The script plot.py starts with the hashbang `#!/usr/local/miniconda3/bin/python` and can be symlinked to ~/bin/plot or /usr/local/bin/plot.
+
+Alternatively, you can create ~/bin/plot containing the following:
+```
+#!/bin/bash
+exec /your/python /path/to/plot.py $@
+```
+
 # Version info
 
 * Initial release V. 0.5 by Michael Isichenko
-* Tested with python 3.7.6 and gnuplot 5.4
+* Tested with python 3.7.6 and gnuplot 5.4 on mac OSX and linux.
 
 # TODO
 
