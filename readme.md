@@ -1,22 +1,25 @@
 # `plot`
 
 `plot` is python program for command-line plotting numeric data from
-files or stdin and is convenient to use with unix pipes.  A standalone
-command-line plotting tool, rather than 'ecosystems' like R, jupyter
-or mathematica notebook, or gnuplot, is something which is missing in
+files or stdin.  A simple command-line plotting tool usable with unix
+pipes, rather than interactive 'ecosystems' like R, jupyter or
+mathematica notebook, or gnuplot, is something which is missing from
 standard shell-based tools.  `plot` is an attempt to fill this void.
+
+The program name is admittedly too generic but is in line with the
+convention of most unix shell commands being (very) short.
 
 The source also includes functions callable from user applications
 after `import plot`.
 
 ## Supported inputs
 
-CSV or whitespace-separated utf-8 text.  The input is expected in the
-form a dataframe with a header line with one or more field names
-followed by data rows with as many numeric fields as there are field
-names.  `plot` will plot any number of 'y' columns vs one 'x' column
-in the dataframe, and more (see below).  Zero-based column numbers to
-plot are supplied by user.
+CSV or whitespace-separated utf-8 text.  The input is expected in a
+dataframe-like format starting with a header line with one or more
+field names followed by data rows with as many numeric fields as there
+are field names.  `plot` will plot any number of 'y' columns vs one
+'x' column in the dataframe, and more (see below).  The zero-based
+column numbers are supplied by the user.
 
 ## Supported graphic backends
 
