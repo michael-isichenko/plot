@@ -127,7 +127,7 @@ Examples:
 
 The script plot.py starts with the hashbang `#!/usr/local/miniconda3/bin/python` and can be symlinked to ~/bin/plot or /usr/local/bin/plot.
 
-Alternatively, you can create ~/bin/plot containing the following:
+If this is not where your python is, a shell scipt ~/bin/plot can be cretaed to contain something like
 ```
 #!/bin/bash
 exec /your/python /path/to/plot.py $@
