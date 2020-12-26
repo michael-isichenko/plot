@@ -1,3 +1,4 @@
+<img src="alpha-art.png" width="800" />
 # `plot`
 
 `plot` is python program for command-line plotting numeric data from
