@@ -49,9 +49,15 @@ def ParseColumns(cols_spec):
 def PrintColumns(fname, opt):
     if os.path.isfile(fname):
         with open(fname) as input:
-            line = input.readline()
+            while True:
+                line = input.readline()
+                if len(line) and line[0] != '#':
+                    break
     else:
-        line = sys.stdin.readline()
+        while True:
+            line = sys.stdin.readline()
+            if len(line) and line[0] != '#':
+                break
     cols = line.rstrip().split(None if opt.whitespace else ',')
     for c, col in enumerate(cols):
         print('{:3d} {}'.format(c, col))
@@ -74,7 +80,7 @@ def Profiles(N, K):
 
 def PrintTestDataframe(opt):
     np.random.seed(opt.seed) # for reproducible output
-    N = 50 if opt.test_parametric else 1000
+    N = 200 if opt.test_parametric else 1000
     K = max(opt.ntests, 4)
     mean = np.zeros(K)
     #cov = NaiveCov(K)
@@ -107,10 +113,12 @@ def PrintTestDataframe(opt):
             wt = np.random.uniform(10,100)
             print(f'{idx},{",".join([str(x) for x in X[idx]])},{wt}')
 
+def Within(x, beg, end): return (beg <= x) & (x < end)
+
 def ReadDataframe(fnames, cols, merge_by_x, opt):
     """
     Read data from one or more compatible files into pandas dataframe.
-    The reasons for using pandas are: (1) fast read_csv() and (2) merge() functionality for multiple files/
+    The reasons for using pandas are: (1) fast pd.read_csv() and (2) pd.merge() functionality for multiple files/
     For multiple files, generate a wide dataframe with columns like <fname>:<column_name>
     Any weight columns must be included in the dataframe
     """
@@ -119,16 +127,29 @@ def ReadDataframe(fnames, cols, merge_by_x, opt):
         header = None                 
         names  = [f'C{c}' for c in cols]
     else:
-         header =  0
+         header = 0 # same as 'infer'
          names = None
     if   opt.seqnum: index_col = False # generate index 0,1,...
     elif merge_by_x: index_col = 0     # index contains x data index_col is per usecols, not the whole input
     else:            index_col = None  # no index
+    skiprows = None
+    if False:
+        # XXX pd.read_csv is buggy: when skiprows is used, header is incorrectly taken from last skipped row
+        # subsetting dataframe with keep_rows is used as a less efficient workaround below
+        if   opt.start is not None and opt.end is not None: skiprows = lambda x: x < float(opt.start) or x >= float(opt.end)
+        elif opt.start is not None:                         skiprows = lambda x: x < float(opt.start)
+        elif opt.end   is not None:                         skiprows = lambda x: x >= float(opt.end)
+    keep_rows = None
+    if   opt.start is not None and opt.end is not None: keep_rows = lambda df: Within(df.index, float(opt.start), float(opt.end))
+    elif opt.start is not None:                         keep_rows = lambda df: df.index >= float(opt.start)
+    elif opt.end   is not None:                         keep_rows = lambda df: df.index <  float(opt.end)
     for i, fname in enumerate(fnames):
         #print(f'XXX1 fname={fname} sep="{sep}" names={names} usecols={cols} index_col={index_col}')
-        file_df = pd.read_csv(sys.stdin if fname == '-' else fname, sep=sep, header=header, names=names, usecols=cols, index_col=index_col)
+        file_df = pd.read_csv(sys.stdin if fname == '-' else fname, sep=sep, header=header, skiprows=skiprows, names=names, usecols=cols, index_col=index_col, dtype=float, comment='#')
         if len(fnames) > 1:
             file_df.columns = [fname + ':' + c for c in file_df.columns]
+        if keep_rows is not None:
+            file_df = file_df.loc[keep_rows, :]
         if i == 0:
             df = file_df
         else:
@@ -335,6 +356,52 @@ def RunHistogram(fnames, cols_spec, opt):
     #print(f'XXX8 cols={cols} names={names} X: {X.shape}:\n{X}')
     PlotDataframe(X, names, errorbars, **vars(opt))
 
+def Sharpe(yy):
+    return np.mean(yy)/np.std(yy)*np.sqrt(252.0)
+
+def Drawdown(yy):
+    lastPeak = 0.0
+    drawdown = 0.0
+    for cumPnl in np.cumsum(yy):
+        fromLastPeak = cumPnl - lastPeak;
+        if fromLastPeak > 0:
+            lastPeak = cumPnl
+        elif fromLastPeak < drawdown:
+            drawdown = fromLastPeak;
+    assert drawdown <= 0
+    return -drawdown
+
+def ComputeStats(stats, X, ycols):
+    if not stats:
+        return None
+    stats_data = [{} for col in range(X.shape[1])]
+    for ycol in ycols:
+        yy = X[:, ycol]
+        mean = np.mean(yy)
+        sdev = np.std(yy)
+        for c in stats:
+            if c == 'm': stats_data[ycol]['mean'  ] = mean
+            if c == 's': stats_data[ycol]['sdev'  ] = sdev
+            if c == 'a': stats_data[ycol]['sharpe'] = Sharpe(yy)
+            if c == 'd': stats_data[ycol]['dd'    ] = Drawdown(yy)
+            if c == 'D': stats_data[ycol]['dd2s'  ] = Drawdown(yy)/sdev if sdev > 0 else np.nan
+    return stats_data
+
+_stats_fields = 'mean sdev sharpe dd dd2s'.split()
+def PrintStats(stats_data, names):
+    fields = [] # same for all ycols
+    for c, stats in enumerate(stats_data):
+        if not stats:
+            continue
+        if not fields:
+            fields = [f for f in _stats_fields if f in stats]
+            print(','.join(['name'] + fields))
+        print(','.join([names[c]] + [f'{round(stats[f],4)}' for f in fields]))
+
+def FormatStats(stats_data):
+    for c, stats in enumerate(stats_data):
+        stats_data[c] = ' '.join([f'{f}={round(stats[f],4)}' for f in _stats_fields if f in stats]) if stats else ''
+
 #
 # Generic plotting frontend
 #
@@ -347,13 +414,14 @@ def PlotDataframe(X, names, errorbars, **kwargs):
     how:      ['with lines']
     cumsum:   [False] -- X is modified in-place
     diff:     [False] -- X is modified in-place
-    bezier:   [False] -- use gnuplot 'smooth bezier' option
+    smooth:   <type> -- use gnuplot 'smooth <type>' option
     llr:      [None]  -- use LLR kernel smoothing over this bandwidth
     title:    ['']
     logscale: [''] -- x, y, or xy
     filtery:  [''] -- to be applied via eval to y data, X modified in-place
     driver:  'gnuplot' or 'pyplot' (or 'plt') [plot.DEFAULT_DRIVER]
     output:   [''] -- save graphics to this pdf file
+    stats:    see plot -h
     gnuplot-specific options:
       gnuplot: ['gnuplot'] -- gnuplot executable
       term:    ['qt']      -- gnuplot terminal
@@ -367,6 +435,7 @@ def PlotDataframe(X, names, errorbars, **kwargs):
     xcol = cols[0]
     ycols = cols[1:]
     filtery = kwargs.get('filtery', '') # like y-y**3
+    stats = kwargs.get('stats', '')
     if kwargs.get('nozeros', False):
         for ycol in ycols:
             y = X[:, ycol]
@@ -374,6 +443,14 @@ def PlotDataframe(X, names, errorbars, **kwargs):
     if filtery:
         for ycol in ycols:
             X[:, ycol] = eval(re.sub(r'\by\b', 'X[:, ycol]', filtery))
+    stats_data = None
+    if stats:
+        stats_data = ComputeStats(stats, X, ycols)
+        if 'P' in stats:
+            PrintStats(stats_data, names)
+            stats_data = None
+        else:
+            FormatStats(stats_data)
     if kwargs.get('cumsum', False):
         for ycol in ycols:
             X[:, ycol] = np.nancumsum(X[:, ycol])
@@ -386,21 +463,21 @@ def PlotDataframe(X, names, errorbars, **kwargs):
         assert errorbars.shape == (nrows, len(ycols))
     cumsum  = kwargs.get('cumsum', False)
     diff    = kwargs.get('diff', False)
-    bezier  = kwargs.get('bezier', False)
+    smooth  = kwargs.get('smooth', False)
     verbose = kwargs.get('verbose', False)
     if filtery: title += f' ({filtery})'
     if cumsum:  title += ' cumsum'
     if diff:    title += ' diff'
-    if bezier:  title += ' bezier'
+    if smooth:  title += f' {smooth}'
     llr_bandwidth = kwargs.get('llr', 0)
     if llr_bandwidth:
         SmoothY(X, xcol, ycols, llr_bandwidth)
         title += f' LLR({llr_bandwidth})'
     #print(f'XXX9 cols={cols} xcol={xcol} ycols={ycols} names={names}') # names[0] == None ??
     driver = kwargs.get('driver', DEFAULT_DRIVER)
-    if driver in ('gnuplot', 'gnu'):  ExecuteGnuplot(X, xcol, ycols, names, title, errorbars, kwargs)
-    elif driver in ('pyplot', 'plt'): ExecutePyplot(X, xcol, ycols, names, title, errorbars, kwargs)
-    else:                             assert False, f'unsupported plotting driver "{driver}"'
+    if   driver in ('gnuplot', 'gnu'): ExecuteGnuplot(X, xcol, ycols, names, title, stats_data, errorbars, kwargs)
+    elif driver in ('pyplot', 'plt'):  ExecutePyplot( X, xcol, ycols, names, title, stats_data, errorbars, kwargs)
+    else:                              assert False, f'unsupported plotting driver "{driver}"'
 
 def DfAdaptor(df, x_in_index):
     if x_in_index:
@@ -417,19 +494,26 @@ def DfAdaptor(df, x_in_index):
 #
 # Gnuplot driver
 #
-def ExecuteGnuplot(X, xcol, ycols, names, title, errorbars, kwargs):
+def ExecuteGnuplot(X, xcol, ycols, names, title, stats_data, errorbars, kwargs):
     nrows = X.shape[0]
     ncols = X.shape[1]
     ny = ncols - 1
     verbose = kwargs.get('verbose', False)
     logscale = kwargs.get('logscale', '')
+    smooth = kwargs.get('smooth', '')
     cols = [xcol] + list(ycols)
     script = []
-    if False: # maybe play with palette
+    if False: # zzz maybe play with palette
         script.append('set style function pm3d')
         script.append('set palette color')
         script.append('f(x)=(x+10)/20')
         script.append('set cbrange [f(-10):f(10)]') # [0:1]
+    if True:
+        colors = 'dark-red red black yellow dark-yellow violet light-blue cyan violet dark-green goldenrod'.split()
+        for i, c in enumerate(colors):
+            script.append(f'set linetype {i + 1} lc rgb "{c}"')
+        script.append(f'set linetype cycle {len(colors)}')
+    #script.append('set colorsequence podo') # zzz
     #script.append(f"set datafile separator ','")
     script.append(f"set datafile missing 'nan'")
     script.append(f"set xlabel '{names[xcol]}'")
@@ -442,11 +526,12 @@ def ExecuteGnuplot(X, xcol, ycols, names, title, errorbars, kwargs):
     if kwargs.get('xzeroaxis', False):
         script.append('set xzeroaxis')
     how   = kwargs.get('how', 'with lines')
-    extra = 'smooth bezier' if kwargs.get('bezier', False) else ''
+    extra = f'smooth {smooth}' if smooth else ''
     output = kwargs.get('output', None)
     if output is not None:
+        #script.append('set terminal pdfcairo size 40in,50in') # for alpha
+        #script.append('set terminal pdfcairo noenhanced color notransparent font "Arial,10"')
         script.append('set terminal pdfcairo')
-        #script.append('set terminal pdfcairo enhanced color notransparent font "Arial,10"')
         script.append(f"set output '{output}'")
         #script.append(f"set title '{title}'")
     else:
@@ -471,6 +556,8 @@ def ExecuteGnuplot(X, xcol, ycols, names, title, errorbars, kwargs):
         for yidx, ycol in enumerate(ycols):
             f = tmp.name if 0 == yidx else ''
             items.append(f"'{f}' using {xcol + 1}:(${ycol + 1}) {extra} {how}") # 1:($2) will make line breaks on missing data
+            if stats_data:
+                items[-1] += f' title "{names[ycol]} {stats_data[ycol]}"'
             if errorbars is not None:
                 items.append(f"'{f}' using {xcol + 1}:{ycol + 1}:{ycol + 1 + ny} with errorbars notitle")
         all_items = ', '.join(items)
@@ -510,7 +597,7 @@ def SmoothY(X, xcol, ycols, llr_bandwidth): # works with nans
         X[:, ycol] = LLR_values(X[:, xcol], X[:, ycol], llr_bandwidth)
         #print(f'XXX10 y[{ycol}] after:\n{X[:, ycol]}')
 
-def ExecutePyplot(X, xcol, ycols, names, title, errorbars, kwargs):
+def ExecutePyplot(X, xcol, ycols, names, title, stats_data, errorbars, kwargs):
     import matplotlib.pyplot as plt
     nrows = X.shape[0]
     ncols = X.shape[1]
@@ -527,8 +614,8 @@ def ExecutePyplot(X, xcol, ycols, names, title, errorbars, kwargs):
     for iy in range(ny):
         x = X[:, 0]
         y = X[:, 1 + iy]
-        if kwargs.get('bezier', False):
-            assert False, 'bezier not supported by pyplot driver'
+        if kwargs.get('smooth', None):
+            assert False, 'smooth option not supported by pyplot driver'
             if 0 == iy:
                 from scipy.interpolate import interp1d
             y = interp1d(x, y, kind='cubic')(x)
@@ -571,8 +658,9 @@ def RunDataplot(fnames, cols_spec, opt):
 def PrintExamples():
     print('  ls -l /usr/bin|grep -v total|plot -cnQw 4 # cumsum of file sizes (input without header)\n'
           + '  plot -t | plot 0-4                        # plot columns 1-4 vs column 0\n'
-          + '  for i in 3 4 5; do plot -ts $i > tmp$i.csv; done; plot 0,2-3 tmp{3,4,5}.csv -zc # cumulative plots from multiple files\n'
-          + '  plot -t | plot 0-4 -zb                    # bezier-smoothed plots (gnuplot driver only)\n'
+          + '  plot -t | plot 0-4 -cS msaD -s 500 -e 900 # cumulative plots for x in [500,900) with statistics in legend\n'
+          + '  for i in 3 4 5; do plot -t1 $i > tmp$i.csv; done; plot 0,2-3 tmp{3,4,5}.csv -zc # cumulative plots from multiple files\n'
+          + '  plot -t | plot 0-4 -zO bezier             # bezier-smoothed plots (gnuplot driver only)\n'
           + '  plot -t | plot 0-4 -zL 20                 # same plots, LLR smoothed\n'
           + '  plot -t | plot 1-4 -p                     # scatter plots\n'
           + '  plot -t | plot 1   -Hz                    # histograms of column 1 data\n'
@@ -580,11 +668,11 @@ def PrintExamples():
           + '  plot -t | plot 1-4 -Rz                    # regressograms of columns 2-4 (y) vs column 1 (x)\n'
           + '  plot -t | plot 1-4 -RzL 0.4               # regressograms smoothed with bandwidth 0.4\n'
           + '  plot -t | plot 1-4 -RzW 5                 # weighted regressograms\n'
-          + '  plot -t | plot 1-4 -eERW 5 -B 60 -L 0.4   # weighted regressograms with 60 equal-weight bins and errorbars\n'
+          + '  plot -t | plot 1-4 -rERW 5 -B 60 -L 0.4   # weighted regressograms with 60 equal-weight bins and errorbars\n'
           + '  plot -tN 500 -B 100|plot 1-500 -RqL 0.3   # spaghetti art\n'
-          + '  plot -tPN 200|plot 1-199 -bqx             # alpha art\n'
+          + '  plot -tPN 200|plot 1-199 -qxO bezier      # alpha art\n'
+          + '  plot -X | head -15 | bash                 # run all of the above\n'
           + '  unplot                                    # kill all active gnuplot windows\n'
-          + '  plot -X | head -14 | bash                 # run all of the above'
 )
     
 def main():
@@ -598,7 +686,10 @@ def main():
     parser.add_argument('-Q', '--seqnum',     action='store_true', help='Use sequence number for x data [first column]')
     parser.add_argument('-n', '--noheader',   action='store_true', help='Indicate that data has no header.  Generate header names F0, F1, etc')
     parser.add_argument('-c', '--cumsum',     action='store_true', help='Plot cumulative sums')
-    parser.add_argument('-b', '--bezier',     action='store_true', help='Plot bezier-smooth data (gnuplot driver only)')
+    parser.add_argument('-O', '--smooth',     type=str,            help='Apply gnuplot smoothing, supported types: s?bezier|(c|mc|ac)splines|(f|c)normal|kdensity <bwidth>')
+    parser.add_argument('-S', '--stats',      type=str,            help='Add stats to plots: m=mean, s=sdev, a=sharpe, d=Drawdown, D=DrawdownToSdev P=statPrintStdout')
+    parser.add_argument('-s', '--start',      type=str,            help='Skip data for x < start')
+    parser.add_argument('-e', '--end',        type=str,            help='Skip data for x >= end')
     parser.add_argument('-x', '--noaxes',     action='store_true', help='Generate plot without axes or border')
     parser.add_argument('-L', '--llr', metavar='bandwidth', type=float, help='Smooth data using local linear regression (LLR) over this bandwidth')
     parser.add_argument('-d', '--diff',       action='store_true', help='Plot differences')
@@ -610,7 +701,7 @@ def main():
     parser.add_argument('-R', '--rgram',      action='store_true', help='Plot regressogram of data columns: first treated as x, rest as y(s)')
     parser.add_argument('-B', '--nbins',                           help=f'For histogram: use this many bins: sqrt: size**(1/2), qbrt: size**(1/3), or <int> [{HIST_DEFAULT_NBINS}]', default=HIST_DEFAULT_NBINS)
     parser.add_argument('-W', '--wts_col',    type=int,            help='For histogram: use this column for weights')
-    parser.add_argument('-e', '--yerr',       action='store_true', help='For regressogram: plot with yerrorbars')
+    parser.add_argument('-r', '--yerr',       action='store_true', help='For regressogram: plot with yerrorbars')
     parser.add_argument('-E', '--equal_wt',   action='store_true', help='Use equal-weight (histo|regresso)gram bins. Implies a density plot for histogram [equal-size]')
    #parser.add_argument('-g', '--grep_key',                        help='Skip input lines without this word')
    #parser.add_argument('-M', '--multikey_col', nargs=1,           help='Plot separate lines for for each value in this column (TODO)')
@@ -620,7 +711,7 @@ def main():
     parser.add_argument('-K', '--keeptmp',    action='store_true', help='Keep tmp file for gnuplot (helpful with -v option) [delete]')
     parser.add_argument('-t', '--test_csv',   action='store_true', help='Print a csv stream for testing')
     parser.add_argument('-P', '--test_parametric', action='store_true', help='For test_csv: Print data for parametric plots')
-    parser.add_argument('-s', '--seed',       type=int,            help='Use this seed for random test_csv data', default=0)
+    parser.add_argument('-1', '--seed',       type=int,            help='Use this seed for random test_csv data', default=0)
     parser.add_argument('-N', '--ntests',     type=int,            help=f'test_csv: print this many columns [{DEFAULT_NTESTS}]', default=DEFAULT_NTESTS)
     parser.add_argument('files_and_columns',  nargs='*')
     args = parser.parse_args()
