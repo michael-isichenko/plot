@@ -42,19 +42,24 @@ Command lines and resulting plots below demonstrate different views of the same 
 
 This view is not particularly telling.
 
+
 ### Regressogram with errorbars: `plot -t | plot 1-4 -rERW 5 -B 60`
 <img src="rgram-errorbars.png" width="600" />
 
 When error bars are large, the dependence of Mean(y) of x is not very visible.  Larger bins will generate smaller error bars at the price of fewer details of the y(x) dependency (bias-variance tradeoff).
 
+
 ### Smoothed regressogram: `plot -t | plot 1-4 -zERW 5 -B 60 -L 0.4`
 <img src="rgram-smooth.png" width="600" />
+
 Smoothing removes some noise and gives a better idea whether and how y depends on x.
+
 
 ### Smoothed histogram: `plot -t | plot 2-4 -HzL 0.5`
 <img src="hgram-smooth.png" width="600" />
 
 Multiple histograms can be displayed simultaneously.
+
 
 ## Usage
 
