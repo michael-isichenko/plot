@@ -17,7 +17,7 @@ CSV or whitespace-separated utf-8 text.  The input is normally expected in a dat
 * `gnuplot`. Requires a [gnuplot5](http://www.gnuplot.info/docs_5.0/gnuplot.pdf) installation.  Generates cleaner graphics in a popup window without an inconvenient blocking command line or calling application.  This is plot's default driver.
 * `pyplot`.  Uses matplotlib.pyplot supplied with python installation, enabled with the `--driver pyplot` option.  This backend blocks the calling shell process until the Qt window is closed.
 
-`plot` is can be used on unix-based systems with a graphics layer such as linux (X11) or OSX (Quartz, Cocoa).  Both gnuplot and matplotlib drivers support graphics-free non-blocking plotting to a pdf file (`--output` option).
+`plot` can be used on unix-based systems with a graphics layer such as linux (X11) or OSX (Quartz, Cocoa).  Both gnuplot and matplotlib drivers support graphics-free non-blocking plotting to a pdf file (`--output` option).
 
 ## Supported plot types
 
