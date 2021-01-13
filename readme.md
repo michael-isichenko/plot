@@ -2,7 +2,7 @@
 
 # `plot`
 
-`plot` is python program for command-line plotting numeric data from files or stdin.  A simple command-line plotting tool usable with unix pipes, rather than interactive 'ecosystems' like R, jupyter or mathematica notebook, or gnuplot, is something which is missing from standard shell-based tools.  `plot` is an attempt to fill this void.
+[plot](https://github.com/michael-isichenko/plot) is python program for command-line plotting numeric data from files or stdin.  A simple command-line plotting tool usable with unix pipes, rather than interactive 'ecosystems' like R, jupyter or mathematica notebook, or gnuplot, is something which is missing from standard shell-based tools.  `plot` is an attempt to fill this void.
 
 The program name is admittedly too generic but is in line with the convention of most unix shell commands being (very) short.
 
