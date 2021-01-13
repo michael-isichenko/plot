@@ -2,7 +2,7 @@
 
 # `plot`
 
-[plot](https://github.com/michael-isichenko/plot) is python program for command-line plotting numeric data from files or stdin.  A simple command-line plotting tool usable with unix pipes, rather than interactive 'ecosystems' like R, jupyter or mathematica notebook, or gnuplot, is something which is missing from standard shell-based tools.  `plot` is an attempt to fill this void.
+[plot](https://github.com/michael-isichenko/plot) is a python program for command-line plotting numeric data from files or stdin.  A simple command-line plotting tool usable with unix pipes, rather than interactive 'ecosystems' like R, jupyter or mathematica notebook, or gnuplot, is something which is missing from standard shell-based tools.  `plot` is an attempt to fill this void.
 
 The program name is admittedly too generic but is in line with the convention of most unix shell commands being (very) short.
 
@@ -12,12 +12,12 @@ The source also includes functions callable from user applications after `import
 
 CSV or whitespace-separated utf-8 text.  The input is normally expected in a dataframe-like format starting with a header line with one or more field names followed by data rows with as many numeric fields as there are field names.  `plot` will plot any number of 'y' columns vs one 'x' column in the dataframe, and more (see below).  The zero-based column numbers are supplied by the user.  Plotting from multiple files is also supported.  Most useful for a unix environment is plotting from standard input.  `plot -t` prints columns of random data usable for self-testing and demo plots.
 
-## Supported graphic backends
+## Supported graphics backends
 
-* `gnuplot`. Requires a [gnuplot5](http://www.gnuplot.info/docs_5.0/gnuplot.pdf) installation.  Generates cleaner graphics in a popup window without an inconvenient blocking command line or calling application.
-* `pyplot`.  Uses matplotlib.pyplot supplied with python istallation.  This backend blocks the calling shell process until the Qt window is closed.
+* `gnuplot`. Requires a [gnuplot5](http://www.gnuplot.info/docs_5.0/gnuplot.pdf) installation.  Generates cleaner graphics in a popup window without an inconvenient blocking command line or calling application.  This is plot's default driver.
+* `pyplot`.  Uses matplotlib.pyplot supplied with python installation, enabled with the `--driver pyplot` option.  This backend blocks the calling shell process until the Qt window is closed.
 
-Both drivers support non-blocking plotting to a pdf file (`--output` option).
+`plot` is can be used on unix-based systems with a graphics layer such as linux (X11) or OSX (Quartz, Cocoa).  Both gnuplot and matplotlib drivers support graphics-free non-blocking plotting to a pdf file (`--output` option).
 
 ## Supported plot types
 
@@ -30,7 +30,7 @@ Both drivers support non-blocking plotting to a pdf file (`--output` option).
 
 ## Regressogram
 
-Regressogram (`--rgram` option) is a useful exploratory data analysis (EDA) tool for visual detection of relationships, including nonlinear, among data fields. Regressoogram is the primary reason for writing the `plot` tool.
+Regressogram (`--rgram` option) is a useful exploratory data analysis (EDA) tool for visual detection of relationships, including nonlinear, among data fields. Regressogram is the primary reason for writing the `plot` tool.
 
 [Regressogram](https://bookdown.org/egarpor/NP-UC3M/kre-i-reg.html) is a refinement of scatter plot and offers better visualization of high-noise data.  Given data arrays `(x[],y[])`, `x`-bins `B[]` are chosen either uniform in `x` or to contain samples of equal count (weight). An regressogram displays mean and optionally standard
 deviation of the samples `y[i]` where `x[i]` fall in bin `B` vs the bin position.  This representation of `y(x)` is similar to a [KNN](https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm) ML data learner whose complexity increases with finer bins.  `plot` supports weighted regressograms by using a weight data column when computing the mean and the standard deviation.
@@ -54,7 +54,7 @@ Smoothing removes some noise and gives a better idea whether and how y depends o
 ### Smoothed histogram: `plot -t | plot 2-4 -HzL 0.5`
 <img src="hgram-smooth.png" width="600" />
 
-Multiple histograms can be dispayed simulataneously.
+Multiple histograms can be displayed simultaneously.
 
 ## Usage
 
@@ -152,7 +152,7 @@ $ plot -X
 
 The script plot.py starts with the hashbang
 `#!/usr/local/miniconda3/bin/python`.  If this is not where your
-python is, a shell scipt ~/bin/plot can be created to contain
+python is, a shell script ~/bin/plot can be created to contain
 something like
 ```
 #!/bin/bash
