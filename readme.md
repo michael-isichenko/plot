@@ -37,7 +37,7 @@ deviation of the samples `y[i]` where `x[i]` fall in bin `B` vs the bin position
 
 Command lines and resulting plots below demonstrate different views of the same noisy data (generated in CSV format by the same tool):
 
-### scatter plot: `plot -t | plot 1-4 -pD plt`
+### Scatter plot: `plot -t | plot 1-4 -pD plt`
 <img src="scatter.png" width="600" />
 
 This view is not particularly telling.
