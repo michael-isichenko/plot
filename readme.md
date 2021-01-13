@@ -14,7 +14,7 @@ CSV or whitespace-separated utf-8 text.  The input is normally expected in a dat
 
 ## Supported graphic backends
 
-* `gnuplot`. Requires a [gnuplot5](http://www.gnuplot.info/docs_5.0/gnuplot.pdf) installation.  Generates cleaner graphics in a popup window without blocking command line or calling application.
+* `gnuplot`. Requires a [gnuplot5](http://www.gnuplot.info/docs_5.0/gnuplot.pdf) installation.  Generates cleaner graphics in a popup window without an inconvenient blocking command line or calling application.
 * `pyplot`.  Uses matplotlib.pyplot supplied with python istallation.  This backend blocks the calling shell process until the Qt window is closed.
 
 Both drivers support non-blocking plotting to a pdf file (`--output` option).
@@ -26,7 +26,7 @@ Both drivers support non-blocking plotting to a pdf file (`--output` option).
 * 1D histograms of column(s) in a dataframe
 * regressograms for one or more y(x)
 
-2D graphs, histograms, and regressograms can be smoothed by local linear regression using user-supplied bandwidth (`--llr` option).  Additional smoothing options include splines supported by gnuplot (`--smooth` option)
+2D graphs, histograms, and regressograms can be smoothed by local linear regression using user-supplied bandwidth (`--llr` option).  Additional data manipulation include splines supported by gnuplot (`--smooth` option), cumulation (`--cumsum`), differencing (`--diff`), subsetting (`--start`, `--end`), and printing basic statistics (`--stats`).
 
 ## Regressogram
 
@@ -41,11 +41,11 @@ Command lines and resulting plots below demonstrate different views of the same 
 <img src="scatter.png" width="800" />
 This view is not particularly telling.
 
-### Regressogram with errorbars: `plot -t | plot 1-4 -eERW 5 -B 60`
+### Regressogram with errorbars: `plot -t | plot 1-4 -rERW 5 -B 60`
 <img src="rgram-errorbars.png" width="600" />
 When error bars are large, the dependence of Mean(y) of x is not very visible.  Larger bins will generate smaller error bars.
 
-### Smoothed regressogram: `plot -t | plot 1-4 -eERW 5 -B 60 -L 0.4`
+### Smoothed regressogram: `plot -t | plot 1-4 -zERW 5 -B 60 -L 0.4`
 <img src="rgram-smooth.png" width="600" />
 Smoothing removes some noise and gives a better idea whether and how y depends on x.
 
@@ -139,7 +139,7 @@ $ plot -X
 
 ## Implementation notes
 
-`plot` loads input data into a pandas dataframe using `pandas.read_csv`.  The reason for using `pandas` is that parsing and tokenizing by `read_csv` is faster than pure python.  Support for alignment/merging of data from multiple files is also a plus.  When gnuplot backend is used, the data (after any smoothing or other processing) is saved to a `tempfile` passed to gnuplot executed via `subprocess`.  The gnuplot script can be viewed using `--verbose` option, and the temporary file can be kept (`--keeptmp`) for debugging.
+`plot` loads input data into a pandas dataframe using `pandas.read_csv`.  The reason for using `pandas` is that parsing and tokenizing by `read_csv` is faster than in pure python.  Support for alignment/merging of data from multiple files is also a plus.  When the gnuplot backend is used, the data (after any smoothing or other processing) is saved to a `tempfile` passed to gnuplot executed via `subprocess`.  The gnuplot script can be viewed using `--verbose` option, and the temporary file can be kept (`--keeptmp`) for debugging.
 
 ## Installation
 
