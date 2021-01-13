@@ -45,7 +45,7 @@ This view is not particularly telling.
 ### Regressogram with errorbars: `plot -t | plot 1-4 -rERW 5 -B 60`
 <img src="rgram-errorbars.png" width="600" />
 
-When error bars are large, the dependence of Mean(y) of x is not very visible.  Larger bins will generate smaller error bars at the price of fewer details of the y(x) dependency.
+When error bars are large, the dependence of Mean(y) of x is not very visible.  Larger bins will generate smaller error bars at the price of fewer details of the y(x) dependency (bias-variance tradeoff).
 
 ### Smoothed regressogram: `plot -t | plot 1-4 -zERW 5 -B 60 -L 0.4`
 <img src="rgram-smooth.png" width="600" />
