@@ -16,6 +16,7 @@ CSV or whitespace-separated utf-8 text.  The input is normally expected in a dat
 
 * `gnuplot`. Requires a [gnuplot5](http://www.gnuplot.info/docs_5.0/gnuplot.pdf) installation.  Generates cleaner graphics in a popup window without blocking command line or calling application.
 * `pyplot`.  Uses matplotlib.pyplot supplied with python istallation.  This backend blocks the calling shell process until the Qt window is closed.
+
 Both drivers support non-blocking plotting to a pdf file (`--output` option).
 
 ## Supported plot types
@@ -24,6 +25,7 @@ Both drivers support non-blocking plotting to a pdf file (`--output` option).
 * 2D graphs for one or more y(x)
 * 1D histograms of column(s) in a dataframe
 * regressograms for one or more y(x)
+
 2D graphs, histograms, and regressograms can be smoothed by local linear regression using user-supplied bandwidth (`--llr` option).  Additional smoothing options include splines supported by gnuplot (`--smooth` option)
 
 ## Regressogram
