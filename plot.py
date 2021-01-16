@@ -209,7 +209,7 @@ def ComputeBinEdges(x, wts, nbins, flags):
         perm = np.argsort(x)
         sorted_x = x[perm]
         sorted_wts = wts[perm] if wts is not None else np.ones(len(x))
-        cum_wts = np.cumsum(sorted_wts)
+        cum_wts = np.nancumsum(sorted_wts)
         total_wt = cum_wts[-1]
         wt_levels = np.arange(0, total_wt*0.999999, total_wt/nbins)
         assert len(wt_levels) == nbins
@@ -356,13 +356,10 @@ def RunHistogram(fnames, cols_spec, opt):
     #print(f'XXX8 cols={cols} names={names} X: {X.shape}:\n{X}')
     PlotDataframe(X, names, errorbars, **vars(opt))
 
-def Sharpe(yy):
-    return np.mean(yy)/np.std(yy)*np.sqrt(252.0)
-
 def Drawdown(yy):
     lastPeak = 0.0
     drawdown = 0.0
-    for cumPnl in np.cumsum(yy):
+    for cumPnl in np.nancumsum(yy):
         fromLastPeak = cumPnl - lastPeak;
         if fromLastPeak > 0:
             lastPeak = cumPnl
@@ -377,14 +374,13 @@ def ComputeStats(stats, X, ycols):
     stats_data = [{} for col in range(X.shape[1])]
     for ycol in ycols:
         yy = X[:, ycol]
-        mean = np.mean(yy)
-        sdev = np.std(yy)
-        for c in stats:
-            if c == 'm': stats_data[ycol]['mean'  ] = mean
-            if c == 's': stats_data[ycol]['sdev'  ] = sdev
-            if c == 'a': stats_data[ycol]['sharpe'] = Sharpe(yy)
-            if c == 'd': stats_data[ycol]['dd'    ] = Drawdown(yy)
-            if c == 'D': stats_data[ycol]['dd2s'  ] = Drawdown(yy)/sdev if sdev > 0 else np.nan
+        mean = np.nanmean(yy)
+        sdev = np.nanstd(yy)
+        if 'm' in stats: stats_data[ycol]['mean'  ] = mean
+        if 's' in stats: stats_data[ycol]['sdev'  ] = sdev
+        if 'a' in stats: stats_data[ycol]['sharpe'] = mean/sdev*np.sqrt(252.0)
+        if 'd' in stats: stats_data[ycol]['dd'    ] = Drawdown(yy)
+        if 'D' in stats: stats_data[ycol]['dd2s'  ] = Drawdown(yy)/sdev if sdev > 0 else np.nan
     return stats_data
 
 _stats_fields = 'mean sdev sharpe dd dd2s'.split()
@@ -508,7 +504,7 @@ def ExecuteGnuplot(X, xcol, ycols, names, title, stats_data, errorbars, kwargs):
         script.append('set palette color')
         script.append('f(x)=(x+10)/20')
         script.append('set cbrange [f(-10):f(10)]') # [0:1]
-    if True:
+    if False:
         colors = 'dark-red red black yellow dark-yellow violet light-blue cyan violet dark-green goldenrod'.split()
         for i, c in enumerate(colors):
             script.append(f'set linetype {i + 1} lc rgb "{c}"')
@@ -531,11 +527,11 @@ def ExecuteGnuplot(X, xcol, ycols, names, title, stats_data, errorbars, kwargs):
     if output is not None:
         #script.append('set terminal pdfcairo size 40in,50in') # for alpha
         #script.append('set terminal pdfcairo noenhanced color notransparent font "Arial,10"')
-        script.append('set terminal pdfcairo')
+        script.append('set terminal pdfcairo noenhanced')
         script.append(f"set output '{output}'")
         #script.append(f"set title '{title}'")
     else:
-        script.append(f"set term qt title '{title}'")
+        script.append(f"set term qt noenhanced title '{title}'")
     if kwargs.get('noaxes', False):
         script.append('unset xtics')
         script.append('unset ytics')
