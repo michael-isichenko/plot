@@ -17,7 +17,7 @@ CSV or whitespace-separated utf-8 text.  Compressed files are handled transparen
 * `pyplot`.  Uses `matplotlib.pyplot` supplied with python installation.  Requires PLOT_DRIVER=pyplot environment variable or `--driver pyplot` option.
 * `gnuplot`. Requires a [gnuplot5](http://www.gnuplot.info/docs_5.0/gnuplot.pdf) installation.  This is plot's default driver.
 
-`plot` can be used on unix-based systems with a graphics layer such as linux (X11) or OSX (Quartz, Cocoa).  With `pyplot` backend, the script should work fine on Windows, but this is not tested.  Either graphics driver generates popup windows supported by forked background processes (`python` for `pyplot` and `gnuplot_qt` gnuplot). When no loner needed, the graphics windows need to be closed one by one by hand or all by the companion `unplot` script.  Both gnuplot and pyplot drivers support graphics-free plotting to a pdf file (`--output` option).
+`plot` can be used on unix-based systems with a graphics layer such as linux (X11) or OSX (Quartz, Cocoa).  With `pyplot` backend, the script should work fine on Windows, but this is not tested.  Either graphics driver generates popup windows supported by forked background processes (`python` for `pyplot` and `gnuplot_qt` for `gnuplot`). When no loner needed, the graphics windows need to be closed one by one by hand or all by the companion `unplot` script.  Both gnuplot and pyplot drivers support graphics-free plotting to a pdf file (`--output` option).
 
 ## Supported plot types
 
@@ -26,7 +26,7 @@ CSV or whitespace-separated utf-8 text.  Compressed files are handled transparen
 * 1D histograms of column(s) in a dataframe
 * regressograms for one or more y(x)
 
-2D graphs, histograms, and regressograms can be smoothed by local linear regression using user-supplied bandwidth (`--llr` option).  Additional data manipulation include splines supported by gnuplot (`--smooth` option), cumulation (`--cumsum`), differencing (`--diff`), subsetting (`--start`, `--end`), and printing basic statistics (`--stats`).
+2D graphs, histograms, and regressograms can be smoothed by [local linear regression](https://en.wikipedia.org/wiki/Local_regression) using user-supplied bandwidth (`--llr` option).  Additional data manipulation include splines supported by gnuplot (`--smooth` option), cumulation (`--cumsum`), differencing (`--diff`), subsetting (`--start`, `--end`), and printing basic statistics (`--stats`).
 
 ## Regressogram
 
@@ -168,7 +168,7 @@ $ plot -X
 
 ## Implementation notes
 
-`plot` loads input data into a pandas dataframe using `pandas.read_csv`.  The reason for using `pandas` is that parsing and tokenizing by `read_csv` is faster than in pure python.  Support for alignment/merging of data from multiple files is also a plus.  When the gnuplot backend is used, the data (after any smoothing or other processing) is saved to a `tempfile` passed to gnuplot executed via `subprocess`.  The gnuplot script can be viewed using `--verbose` option, and the temporary file can be kept (`--keeptmp`) for debugging.
+`plot` loads input data into a pandas dataframe using `pandas.read_csv`.  The reason for using `pandas` is that parsing and tokenizing by `read_csv` is faster than in pure python.  Support for alignment/merging of data from multiple files is also a plus.  When the gnuplot backend is used, the data (after any smoothing or other processing) is saved to a `tempfile` passed to gnuplot executed via `subprocess`.  The gnuplot script can be viewed using `--verbose` option, and the temporary file can be kept (`--keeptmp`) for debugging.  Code for for `pyplot` graphics is executed in a child created by `os.fork()` so the graphics window outlive the calling process.
 
 
 ## Installation
@@ -191,7 +191,7 @@ The script is best symlinked to ~/bin/plot or /usr/local/bin/plot.  All examples
 ## TODO
 
 * More robust Datetime data support
-* Input filtering (a.k.a. 'where' clause) based on data values
+* Input filtering (aka 'where' clause) based on data values
 * `eval`-based support for arithmetic and boolean expressions with data columns
 * Maybe: support surface/contour/heatmap plots while keeping a clean CLI
 * Maybe: add [GP](https://en.wikipedia.org/wiki/Gaussian_process) in addition to LLR and splines
