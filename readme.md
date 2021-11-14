@@ -17,7 +17,7 @@ CSV or whitespace-separated utf-8 text.  Compressed files are handled transparen
 * `pyplot`.  Uses `matplotlib.pyplot` supplied with python installation.  Requires PLOT_DRIVER=pyplot environment variable or `--driver pyplot` option.
 * `gnuplot`. Requires a [gnuplot5](http://www.gnuplot.info/docs_5.0/gnuplot.pdf) installation.  This is plot's default driver.
 
-`plot` can be used on unix-based systems with a graphics layer such as linux (X11) or OSX (Quartz, Cocoa).  Either graphics driver generates popup windows supported by forked background processes (`python` for `pyplot` and `gnuplot_qt` gnuplot). When no loner needed, the graphics windows need to be closed one by one by hand or all by the companion `unplot` script.  Both gnuplot and pyplot drivers support graphics-free plotting to a pdf file (`--output` option).
+`plot` can be used on unix-based systems with a graphics layer such as linux (X11) or OSX (Quartz, Cocoa).  With `pyplot` backend, the script should work fine on Windows, but this is not tested.  Either graphics driver generates popup windows supported by forked background processes (`python` for `pyplot` and `gnuplot_qt` gnuplot). When no loner needed, the graphics windows need to be closed one by one by hand or all by the companion `unplot` script.  Both gnuplot and pyplot drivers support graphics-free plotting to a pdf file (`--output` option).
 
 ## Supported plot types
 
