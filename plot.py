@@ -144,30 +144,48 @@ def IsMixed(cols):
         if have_int and have_str:
             return True
     return False
-        
-def NamesToNumbers(cols, header_buffer, sep):
+
+def NamesToNumbersFromLine(cols, line, sep):
+    #print(f'XXX line: {line}')
+    new_cols = []
+    tokens = line.split(sep)
+    for col in cols:
+        if isinstance(col, int):
+            if col >= 0:
+                new_cols.append(col)
+            else: # open range
+                assert len(cols) > 1
+                assert col == cols[-1]
+                for c in range(cols[-2] + 1, len(tokens)):
+                    new_cols.append(c)
+        else: # not isinstance(col, str)
+            #print(f'XXX type({col})={type(col)} -- not an int')
+            colon = col.find(':')
+            new_cols.append(tokens.index(col if colon < 0 else col[0:colon]))
+    new_names = [tokens[c] for c in new_cols]
+    return new_cols, new_names
+    
+def NamesToNumbersFromBuffer(cols, header_buffer, sep):
     for line in header_buffer.decode().split('\n'):
-        #print(f'XXX line: {line}')
         if line.startswith('#'):
             continue
-        new_cols = []
-        tokens = line.split(sep)
-        for col in cols:
-            if isinstance(col, int):
-                #print(f'XXX type({col})={type(col)} -- an int')
-                if col >= 0:
-                    new_cols.append(col)
-                else: # open range
-                    assert len(cols) > 1
-                    assert col == cols[-1]
-                    for c in range(cols[-2] + 1, len(tokens)):
-                        new_cols.append(c)
-            else: # isinstance(col, str)
-                #print(f'XXX type({col})={type(col)} -- not an int')
-                colon = col.find(':')
-                new_cols.append(tokens.index(col if colon < 0 else col[0:colon]))
-        new_names = [tokens[c] for c in new_cols]
-        return new_cols, new_names
+        return NamesToNumbersFromLine(cols, line, sep)
+    return None
+
+def NamesToNumbersFromFile(cols, fname, sep):
+    if False and fname == '-': # nice try
+        # io.DEFAULT_BUFFER_SIZE = 8192 is not enough for input with a very wide header
+        with os.fdopen(sys.stdin.fileno(), 'r', 2*io.DEFAULT_BUFFER_SIZE) as newin:
+            for line in newin:
+                if line.startswith('#'):
+                    continue
+                return NamesToNumbersFromLine(cols, line, sep)
+    else:
+        with (lzma.open(fname) if fname.endswith('.xz') else open(fname)) as file:
+            for line in file:
+                if line.startswith('#'):
+                    continue
+                return NamesToNumbersFromLine(cols, line, sep)
     return None
 
 def ToeplitzCov(K, mincor):
@@ -282,18 +300,16 @@ def ReadDataframe(fnames, cols, wts_col, merge_by_x, opt):
     elif opt.start is not None:                         keep_rows = lambda df:        df.index >= float(opt.start) # float(opt.start)
     elif opt.end   is not None:                         keep_rows = lambda df:        df.index <  float(opt.end) # float(opt.end)
     for i, fname in enumerate(fnames):
-        is_stream = False
         needs_reorder = opt.swapxy or AllInts(all_cols) and not AreSorted(all_cols)
         if (IsMixed(all_cols) or # read_csv does not support mixed int/str usecols, a workaround uses peaking into input
             needs_reorder):  # read_csv generates a col-sorted columns regardless of usecols order.  df can be reordered only using string names
-            if fname == '-':            input = sys.stdin
-            elif fname.endswith('.xz'): input = lzma.open(fname); is_stream = True
-            else:                       input = input.open(fname); is_stream = True
+            if fname == '-': # io.DEFAULT_BUFFER_SIZE is 8192.  if header of stdin is bigger, you are out of luck: read file or use numeric columns then
+                all_cols, all_col_names = NamesToNumbersFromBuffer(all_cols, sys.stdin.buffer.peek(io.DEFAULT_BUFFER_SIZE), sep)
+            else:
+                all_cols, all_col_names = NamesToNumbersFromFile(all_cols, fname, sep)
             #print(f'XXX all_cols={all_cols}')
-            all_cols, all_col_names = NamesToNumbers(all_cols, input.buffer.peek(io.DEFAULT_BUFFER_SIZE), sep) # io.DEFAULT_BUFFER_SIZE is normally 8192
-        else:
-            input = sys.stdin if fname == '-' else fname
-        file_df = pd.read_csv(input, sep=sep, header=header, parse_dates=not opt.seqnum, skiprows=skiprows,
+        file_df = pd.read_csv(sys.stdin if fname == '-' else fname,
+                              sep=sep, header=header, parse_dates=not opt.seqnum, skiprows=skiprows,
                               names=names, usecols=all_cols, index_col=index_col, dtype=float, comment='#')
         #print(f'XXX df.index.name={file_df.index.name} df.columns={file_df.columns} all_cols={all_cols}')
         if needs_reorder:
@@ -306,8 +322,6 @@ def ReadDataframe(fnames, cols, wts_col, merge_by_x, opt):
             df = file_df
         else:
             df = pd.merge(df, file_df, how='outer', left_index=True, right_index=True)
-        if is_stream:
-            input.close()
     #print(f'XXX2 df columns={df.columns.tolist()}:\ndf.index:\n{df.index}\ndf:\n{df}')
     if separate_wts_col:
         cols = all_cols[0:-1]
@@ -596,12 +610,18 @@ def ComputeStats(stats_spec, yy):
         if all or 'D' in stats_spec: ystats[iy]['dd2s'  ] = Drawdown(y)/sdev if sdev > 0 else np.nan
     return ystats
 
-def Digits(x):    return 0 if x == 0 else np.max(int(3 - np.log10(np.abs(x))), 0)
+def Digits(x):
+    #print(f'XXX Digits({x})')
+    rc = 0 if x == 0 else np.max(int(3 - np.log10(np.abs(x))), 0)
+    #print(f'XXX Digits({x})={rc}')
+    return rc
+
 def FormatNum(x):
+    if np.isnan(x):
+        return 'nan'
     if np.abs(x) >= 1e6:
         return f'{x:.2e}'
     else:
-        #print(f'XXX x={x} digits={Digits(x)}')
         return f'{round(x, Digits(x))}'
 
 def FormatInt(x): return f'{round(x):,}'
@@ -631,7 +651,24 @@ def FormatRgramStats(cms, iy):
     
 def IsDate(name):
     return name.lower() in ('date', 'time')
-        
+
+def ComputeOlsFit(x, yy):
+    nob, ny = yy.shape
+    icepts = np.zeros(ny)
+    betas = np.zeros(ny)
+    xmean = np.mean(x)
+    denom = np.dot(x - xmean, x - xmean)
+    assert denom != np.nan and denom > 0
+    if denom != 0:
+        for iy in range(ny):
+            y = yy[:, iy]
+            ymean = np.nanmean(y)
+            #num = np.dot(x - xmean, y - ymean) # yy can have nans
+            num = np.nansum((x - xmean)*(y - ymean))
+            betas[iy] = num/denom
+            icepts[iy] = ymean - betas[iy]*xmean
+    return icepts, betas
+
 #
 # Generic plotting frontend
 #
@@ -675,6 +712,16 @@ def PlotDataframe(df, ycols, yerr_cols, cms, hows, opt):
         assert not errorbars, 'diff errorbars not supported'
         for iy in range(ny):
             yy[:, iy] = np.diff(yy[:, iy], prepend=yy[0, iy])
+    if opt.ols_fit:
+        icepts, betas = ComputeOlsFit(x, yy)
+        yy_fit = np.zeros(yy.shape)
+        print(f'XXX x={x}')
+        for iy in range(ny):
+            print(f'XXX iy={iy} icept={icepts[iy]} beta={betas[iy]} for yy={yy[:, iy]}')
+            yy_fit[:, iy] = icepts[iy] + betas[iy]*x[:]
+            ynames.append(f'fit({ynames[iy]})={FormatNum(betas[iy])}*{xname}+{FormatNum(icepts[iy])}')
+            hows.append('l')
+        yy = np.hstack((yy, yy_fit))
     title = opt.title
     if not opt.title:
         ew = 'EW 'if opt.equal_wt else ''
@@ -748,6 +795,15 @@ def GnuplotBestOutputDateFormat(beg, end):
 # Gnuplot driver
 #
 
+def ComputeInputTimeFmt(x):
+    import re
+    if   re.search(r'\d{8}$',                x): return '%Y%m%d'
+    elif re.search(r'\d{8}\.0$',             x): return '%Y%m%d.0'
+    elif re.search(r'\d{4}-\d{2}-\d{2}$',    x): return '%Y-%m-%d'
+    elif re.search(r'\d{4}/\d{2}/\d{2}$',    x): return '%Y-%m-%d'
+    elif re.search(r'\d{4}-\d{2}-\d{2}T00:', x): return '%Y-%m-%dT00:00:00.000000000' # 2021-10-04T00:00:00.000000000
+    else:                                        return '%Y%m%d' # XXX
+
 def ExecuteGnuplot(x, yy, xname, ynames, cms, yhows, title, ystats, errorbars, opt):
     #print(f'XXX xname={xname} ynames={ynames}')
     xdate = not opt.seqnum and IsDate(xname)
@@ -757,7 +813,8 @@ def ExecuteGnuplot(x, yy, xname, ynames, cms, yhows, title, ystats, errorbars, o
         script.append(f"set xlabel '{xname}'")
         if xdate:
             script.append(f'set xdata time')
-            in_fmt = '%Y%m%d'
+            #in_fmt = '%Y%m%d'
+            in_fmt = ComputeInputTimeFmt(str(x[0]))
             script.append(f'set timefmt "{in_fmt}"')
             #print(f'XXX x={x}')
             out_fmt = GnuplotBestOutputDateFormat(x[0], x[-1])
@@ -789,7 +846,7 @@ def ExecuteGnuplot(x, yy, xname, ynames, cms, yhows, title, ystats, errorbars, o
     if opt.output is not None:
         script.append('set terminal pdfcairo noenhanced')
         output = opt.output if opt.nplots == 1 else opt.output.replace('.pdf', f'.{global_plot_idx}.pdf')
-        print(f'# {output}')
+        #print(f'# {{{output}}}')
         script.append(f"set output '{output}'")
         script.append(f"set key title '{title}'")
     else:
@@ -1000,6 +1057,7 @@ def main():
     parser.add_argument('-p', '--points',     action='store_true', help='Plot with points (scatter plot) [with lines]')
     parser.add_argument('-D', '--dots',       action='store_true', help='Plot with small dots (scatter plot) [with lines]')
     parser.add_argument('-l', '--logscale',   type=str,            help='Use log scale for x|y|xy.  Uppercase means select automatically based on data.  Useful with --separate option')
+    parser.add_argument('-F', '--ols_fit',    action='store_true', help='Add an OLS linear fit to each plotted y(x) line')
     parser.add_argument('-H', '--hgram',      action='store_true', help='Plot histogram of indicated data column(s)')
     parser.add_argument('-R', '--rgram',      action='store_true', help='Plot regressogram of data columns: first treated as x, rest as y(s)')
     parser.add_argument('-M', '--esm',        action='store_true', help='For regressogram with yerr: plot error bars of sample mean (x 1/sqrt(Neff)) rather than yerr')
