@@ -148,7 +148,7 @@ def IsMixed(cols):
 def NamesToNumbersFromLine(cols, line, sep):
     #print(f'XXX line: {line}')
     new_cols = []
-    tokens = line.split(sep)
+    tokens = line.rstrip().split(sep)
     for col in cols:
         if isinstance(col, int):
             if col >= 0:
@@ -182,9 +182,11 @@ def NamesToNumbersFromFile(cols, fname, sep):
                 return NamesToNumbersFromLine(cols, line, sep)
     else:
         with (lzma.open(fname) if fname.endswith('.xz') else open(fname)) as file:
+            print(f'XXX {file}')
             for line in file:
                 if line.startswith('#'):
                     continue
+                print(f'XXX "{line}"')
                 return NamesToNumbersFromLine(cols, line, sep)
     return None
 
