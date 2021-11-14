@@ -14,7 +14,8 @@ from scipy import stats
 # Constants
 #
 VERSION            = '0.5 as of 2020-08-30'
-DEFAULT_DRIVER     = 'gnuplot'
+_DEFAULT_DRIVER    = 'gnuplot'
+DEFAULT_DRIVER     = os.environ['PLOT_DRIVER'] if 'PLOT_DRIVER' in os.environ else _DEFAULT_DRIVER
 CHUNK              = 1024
 DEFAULT_NTESTS     = 4
 HIST_DEFAULT_NBINS = 'sqrt'
@@ -930,7 +931,7 @@ def ScatterPointSize(n):
     if n < 10000: return 1
     return 0.5
 
-def ExecutePyplot(x, yy, xname, ynames, cms, hows, title, ystats, errorbars, opt):
+def _ExecutePyplot(x, yy, xname, ynames, cms, hows, title, ystats, errorbars, opt):
     import matplotlib.pyplot as plt
     ny = yy.shape[1];
     fig = plt.figure()
@@ -940,25 +941,24 @@ def ExecutePyplot(x, yy, xname, ynames, cms, hows, title, ystats, errorbars, opt
         if 'y' in opt.logscale: plt.yscale('log')
     for iy in range(ny):
         y = yy[:, iy]
+        how = hows[iy]
+        lw = 1 if how == 'D' else 1.5 # default (2?) seems thick
         if opt.smooth is not None:
-            assert False, 'smooth option not supported by pyplot driver'
-            if 0 == iy:
-                from scipy.interpolate import interp1d
+            from scipy.interpolate import interp1d
+            #assert False, 'smooth option not supported by pyplot driver'
             y = interp1d(x, y, kind='cubic')(x)
         if opt.nolegend:
             label = None
         elif ystats is not None:
-            label = f'{ynames[iy]} {ystats[iy]}'
+            label = f'{ynames[iy]} {FormatYStats(ystats, iy)}'
         else:
             label = ynames[iy]
         if errorbars is not None:
             plt.errorbar(x, y, errorbars[:, iy], label=label, linewidth=lw, linestyle='solid')
         else:
-            how = hows[iy]
             if how == 'p':
                 plt.scatter(x, y, label=label, s=ScatterPointSize(len(x)))
             else:
-                lw = 1 if how == 'D' else 1.5 # default (2?) seems thick
                 plt.plot(x, y, label=label, linewidth=lw, linestyle=f'{PyplotLinetype(how)}')
     if opt.xzeroaxis:
         plt.plot(x, np.zeros(len(x)), '--', label='', color='grey', linewidth=1)
@@ -966,20 +966,33 @@ def ExecutePyplot(x, yy, xname, ynames, cms, hows, title, ystats, errorbars, opt
     if xdate:
         import datetime as dt
         x = [dt.datetime.strptime(str(int(d)),'%Y%m%d').date() for d in x]
-        #x = [dt.datetime(int(d/10000), int(d/10) % 10000 + 1, int(d) % 1000000) for d in x]
     if opt.noaxes:
         plt.axis('off')
     else:
         if not opt.hgram:    ax.set_xlabel(xname)
         if not opt.nolegend: plt.legend()
     if opt.output is not None:
-        #plt.show(block=False)
         output = opt.output if opt.nplots == 1 else opt.output.replace('.pdf', f'.{global_plot_idx}.pdf')
         print(f'# {output}')
         fig.savefig(output, bbox_inches='tight')
     else:
-        plt.show(block=True)
+        plt.show(block=True) # must kill the pyplot window with 'q' or mouse, or with Ctr-C in the shell
 
+def ExecutePyplot(x, yy, xname, ynames, cms, hows, title, ystats, errorbars, opt):
+    if opt.output:
+        _ExecutePyplot(x, yy, xname, ynames, cms, hows, title, ystats, errorbars, opt)
+    elif True: # try fork
+        pid = os.fork()
+        if pid: # parent
+            #import time
+            #print(f'parent: child window as pid {pid}')
+            #time.sleep(10)
+            sys.exit(0)
+        else: # child
+            #print(f'enter child')
+            #sys.stderr = open(os.devnull, 'w') 
+            _ExecutePyplot(x, yy, xname, ynames, cms, hows, title, ystats, errorbars, opt)
+            
 #
 # 2D data plotter
 #   
@@ -1013,6 +1026,7 @@ def RunDataplot(fnames, columns, opt):
             PlotDataframe(df, [iy], no_yerr, no_cms, hows, opt)
 
 def PrintExamples():
+    print('# optionally: export PLOT_DRIVER=plt')
     print('  ls -l /usr/bin|grep -v total|plot -cnQw 4 # cumsum of file sizes (input without header)\n'
           + '  plot -t | plot 0-4                        # plot columns 1-4 vs column 0\n'
           + '  plot -t | plot 0-4 -cS msaD -s 500 -e 900 # cumulative plots for x in [500,900) with statistics in legend\n'
@@ -1028,7 +1042,7 @@ def PrintExamples():
           + '  plot -t | plot 1-4 -rERW 5 -B 60 -L 0.4   # weighted regressograms with 60 equal-weight bins and errorbars\n'
           + '  plot -tN 500 -B 100|plot 1-500 -Rq        # spaghetti art\n'
           + '  plot -t3N 200|plot 1-199 -qxO bezier      # alpha art\n'
-          + '  plot -X | head -15 | bash                 # run all of the above\n'
+          + '  plot -X | head -16 | bash                 # run all of the above\n'
           + '  unplot                                    # kill all active gnuplot windows\n'
 )
     
@@ -1079,7 +1093,7 @@ def main():
     parser.add_argument('-3', '--test_parametric', action='store_true', help='For test_csv: Print data for parametric plots')
     parser.add_argument('-C', '--test_clean', action='store_true', help='For test_csv: Print simple clean data for plots')
     parser.add_argument('-1', '--seed',       type=int,            help='Use this seed for random test_csv data', default=0)
-    parser.add_argument('-2', '--driver',                          help=f'Use this backend graphics driver: gnuplot or pyplot [{DEFAULT_DRIVER}]', default=DEFAULT_DRIVER)
+    parser.add_argument('-2', '--driver',                          help=f'Use this backend graphics driver: gnuplot (gnu) or pyplot (plt) [$PLOT_DRIVER (if set) or {_DEFAULT_DRIVER}]', default=DEFAULT_DRIVER)
     parser.add_argument('-g', '--gnuplot',                         help=f'Use this gnuplot binary [gnuplot]', default='gnuplot')
     parser.add_argument('-N', '--ntests',     type=int,            help=f'test_csv: print this many columns [{DEFAULT_NTESTS}]', default=DEFAULT_NTESTS)
     parser.add_argument('files_and_columns',  nargs='*')
