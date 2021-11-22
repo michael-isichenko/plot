@@ -183,11 +183,11 @@ def NamesToNumbersFromFile(cols, fname, sep):
                 return NamesToNumbersFromLine(cols, line, sep)
     else:
         with (lzma.open(fname) if fname.endswith('.xz') else open(fname)) as file:
-            print(f'XXX {file}')
+            #print(f'XXX {file}')
             for line in file:
                 if line.startswith('#'):
                     continue
-                print(f'XXX "{line}"')
+                #print(f'XXX "{line}"')
                 return NamesToNumbersFromLine(cols, line, sep)
     return None
 
@@ -718,9 +718,9 @@ def PlotDataframe(df, ycols, yerr_cols, cms, hows, opt):
     if opt.ols_fit:
         icepts, betas = ComputeOlsFit(x, yy)
         yy_fit = np.zeros(yy.shape)
-        print(f'XXX x={x}')
+        #print(f'XXX x={x}')
         for iy in range(ny):
-            print(f'XXX iy={iy} icept={icepts[iy]} beta={betas[iy]} for yy={yy[:, iy]}')
+            #print(f'XXX iy={iy} icept={icepts[iy]} beta={betas[iy]} for yy={yy[:, iy]}')
             yy_fit[:, iy] = icepts[iy] + betas[iy]*x[:]
             ynames.append(f'fit({ynames[iy]})={FormatNum(betas[iy])}*{xname}+{FormatNum(icepts[iy])}')
             hows.append('l')
@@ -742,7 +742,7 @@ def PlotDataframe(df, ycols, yerr_cols, cms, hows, opt):
     if opt.llr:
         SmoothY(x, yy, opt)
         title += f' LLR({opt.llr})'
-    #print(f'XXX9 cols={cols} xcol={xcol} ycols={ycols} names={names}') # names[0] == None ??
+    #print(f'XXX cols={cols} xcol={xcol} ycols={ycols} names={names}') # names[0] == None ??
     if   opt.driver in ('gnuplot', 'gnu'): ExecuteGnuplot(x, yy, xname, ynames, cms, hows, title, ystats, errorbars, opt)
     elif opt.driver in ('pyplot', 'plt'):  ExecutePyplot(x, yy, xname, ynames, cms, hows, title, ystats, errorbars, opt)
     else:                                  assert False, f'unsupported plotting driver "{driver}"'
